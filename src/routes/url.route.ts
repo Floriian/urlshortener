@@ -1,10 +1,13 @@
-import { Request, Response, Router } from "express";
-import { RequestUrlModel } from "../types";
-import { UrlModel } from "../schemas";
+import { Router } from "express";
 import * as urlController from "../services/url.service";
+import { schemaValidationMiddleware } from "../middlewares";
+import { RequestUrlObject } from "../types";
 
 const urlRouter: Router = Router();
-
-urlRouter.post("/", urlController.createUrl);
+urlRouter.post(
+  "/",
+  schemaValidationMiddleware("BODY", RequestUrlObject),
+  urlController.createUrl
+);
 
 export default urlRouter;

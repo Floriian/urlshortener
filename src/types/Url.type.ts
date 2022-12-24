@@ -1,8 +1,5 @@
-export type RequestUrlModel = {
-  baseUrl: string;
-  shortedUrl: string;
-};
-
-export type RequestUrlParams = {
-  shortedUrl: string;
-};
+import { z } from "zod";
+export const RequestUrlObject = z.object({
+  baseUrl: z.string().url(),
+});
+export type RequestUrlModel = z.infer<typeof RequestUrlObject>;
