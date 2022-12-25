@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { RequestUrlModel } from "../types";
 import { UrlModel } from "../schemas";
+import { redisClient } from "../utils";
 
 const chars = "QWERTZUIOPASDFGHJKLYXCVBNMqwertzuiopasdfghjklyxcvbnm0123456789";
 
@@ -36,8 +37,31 @@ export async function createUrl(req: Request, res: Response) {
 export async function getOne(req: Request, res: Response) {
   const { shortString } = req.params;
 
-  const findOne = await UrlModel.findOne({ shortedUrl: shortString });
-  if (!findOne) return res.status(404);
+  try {
+    const cacheData = await redisClient.get(shortString);
 
-  res.redirect(findOne.baseUrl!);
+    if (cacheData) {
+      const parsedCacheData = (await JSON.parse(cacheData)) as RequestUrlModel;
+      res.redirect(parsedCacheData.baseUrl);
+    }
+
+    if (!cacheData) {
+      const findByShortUrl = await UrlModel.findOne({
+        shortedUrl: shortString,
+      });
+
+      if (findByShortUrl) {
+        await redisClient.set(shortString, JSON.stringify(findByShortUrl));
+        res.redirect(findByShortUrl.baseUrl!);
+      }
+
+      if (!findByShortUrl) {
+        res
+          .status(404)
+          .json({ message: "This identifier is not exists in database!" });
+      }
+    }
+  } catch (e) {
+    res.status(500).json(e);
+  }
 }
